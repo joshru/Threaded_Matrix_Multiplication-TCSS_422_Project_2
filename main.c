@@ -2,25 +2,35 @@
 #include <stdlib.h>
 #include <time.h>
 #include <pthread.h>
-
-//https://zhaowuluo.wordpress.com/2011/01/03/pthread-atrix-multiplication-on-unixlinux/
-
-#define SIZE 200
-#define THREADS 2
+#include <sys/time.h>
 
 
+#define SIZE 2000
+#define THREADS 8
+
+int matrix1[SIZE][SIZE], matrix2[SIZE][SIZE], result[SIZE][SIZE];
+
+//Specifically formatted print method for checking matrix multiplication through wolfram alpha
 void printMatrix(int matrix[][SIZE]) {
     int i, j;
+    printf("{");
     for (i = 0; i < SIZE; i++) {
+        printf("{");
         for (j = 0; j < SIZE; j++) {
-            printf("%d\t", matrix[i][j]);
+            printf("%d", matrix[i][j]);
+            if (j != SIZE - 1) {
+                printf(",");
+            }
         }
+        printf("},");
         printf("\n");
     }
+    printf("}");
 
     printf("\n\n");
 }
 
+//fills the passed matrix with random numbers between 1 and 1000
 void fillMatrix(int trix[SIZE][SIZE]) {
     int i, j, r;
     for (i = 0; i < SIZE; i++) {
@@ -31,9 +41,10 @@ void fillMatrix(int trix[SIZE][SIZE]) {
     }
 }
 
-void* doMult(void* chunk, int matrix1[][SIZE], int matrix2[][SIZE], int result[][SIZE]) {
+//multiplies two matricies and stores their result in a third matrix
+void* doMult(void* chunk) {
     int i, j, k;
-    int c = (int) chunk;
+    int c = (int)(long) chunk;
     int threadStart = (c * SIZE) / THREADS;
     int threadEnd = ((c + 1) * SIZE) / THREADS;
 
@@ -49,32 +60,23 @@ void* doMult(void* chunk, int matrix1[][SIZE], int matrix2[][SIZE], int result[]
 
 int main(void) {
     srand(time(NULL));
+    struct timeval t1, t2;
 
-    clock_t initTime = clock();
+    int initTime = gettimeofday(&t1, NULL);
 
-//    pthread_t* thread = (pthread_t*) malloc(THREADS * sizeof(pthread_t));
     pthread_t thread[THREADS];
-    pthread_attr_t attr;
-
-
-    pthread_attr_init(&attr);
-
-    int matrix1[SIZE][SIZE], matrix2[SIZE][SIZE], result[SIZE][SIZE];
     int i, j, k;
 
     fillMatrix(matrix1);
     fillMatrix(matrix2);
 
+
+
     for (i = 1; i < THREADS; i++) {
-//        if (pthread_create(&thread[i], NULL, doMult, (void *) i) != 0) {
-        if (pthread_create(&thread[i], &attr, doMult, (void *) i) != 0) {
-            perror("Can't create thread");
-            free(thread);
-            exit(-1);
-        }
+        pthread_create(&thread[i], NULL, doMult, (void *) i);
     }
 
-    doMult(0, matrix1, matrix2, result);
+    doMult(0);
 
     for (i = 1; i < THREADS; i++) {
         pthread_join(thread[i], NULL);
@@ -92,18 +94,9 @@ int main(void) {
     }
 
 
-
-    printf("Matrix 1:\n");
-    printMatrix(matrix1);
-    printf("Matrix 2:\n");
-    printMatrix(matrix2);
-    printf("Result: \n");
-    printMatrix(result);
-    free(thread);
-
-    clock_t endTime = clock();
-    double elapsed = (double) (endTime - initTime) / CLOCKS_PER_SEC;
-    printf("Time elapsed in seconds: %f", elapsed);
+    int endTime = gettimeofday(&t2, NULL);
+    unsigned long long elapsed = 1000 * (t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec) / 1000;
+    printf("Time elapsed in seconds: %llu", elapsed / 1000);
 
     return 0;
 }
