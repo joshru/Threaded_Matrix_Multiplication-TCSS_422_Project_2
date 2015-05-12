@@ -6,7 +6,7 @@
 
 
 #define SIZE 2000
-#define THREADS 1
+#define THREADS 16
 //int THREADS;
 
 /**
