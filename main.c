@@ -6,7 +6,14 @@
 
 
 #define SIZE 2000
-#define THREADS 8
+#define THREADS 1
+//int THREADS;
+
+/**
+ * Threaded Matrix Multiplication - TCSS 422 Project 2
+ * @author Josh Rueschenberg
+ * @author Brandon Bell
+ */
 
 int matrix1[SIZE][SIZE], matrix2[SIZE][SIZE], result[SIZE][SIZE];
 
@@ -48,32 +55,35 @@ void* doMult(void* chunk) {
     int threadStart = (c * SIZE) / THREADS;
     int threadEnd = ((c + 1) * SIZE) / THREADS;
 
+    printf("Computing chunk %d (from row %d to %d)\n", c, threadStart, threadEnd-1);
     for (i = threadStart; i < threadEnd; i++) {
         for (j = 0; j < SIZE; j++) {
+            result[i][j] = 0;
             for (k = 0; k < SIZE; k++) {
-                result[i][j] = matrix1[i][k] * matrix2[i][k];
+                result[i][j] += matrix1[i][k] * matrix2[k][j];
             }
         }
     }
     return 0;
 }
 
-int main(void) {
+int main(int argc, char* argv[]) {
     srand(time(NULL));
     struct timeval t1, t2;
+    pthread_t* thread;
+    int i;
 
-    int initTime = gettimeofday(&t1, NULL);
+//    THREADS = atoi(argv[1]);
 
-    pthread_t thread[THREADS];
-    int i, j, k;
+    printf("Number of threads: %d\n", THREADS);
 
     fillMatrix(matrix1);
     fillMatrix(matrix2);
 
-
-
+    gettimeofday(&t1, NULL);
+    thread = (pthread_t*) malloc(THREADS*sizeof(pthread_t));
     for (i = 1; i < THREADS; i++) {
-        pthread_create(&thread[i], NULL, doMult, (void *) i);
+        pthread_create(&thread[i], NULL, doMult, (void *)(long) i);
     }
 
     doMult(0);
@@ -82,19 +92,14 @@ int main(void) {
         pthread_join(thread[i], NULL);
     }
 
-    int product = 0;
-    for (i = 0; i < SIZE; i++) {
-        for (j = 0; j < SIZE; j++) {
-            for (k = 0; k < SIZE; k++) {
-                product += matrix1[i][k] * matrix2[k][j];
-            }
-            result[i][j] = product;
-            product = 0;
-        }
-    }
+//    puts("Matrix 1");
+//    printMatrix(matrix1);
+//    puts("Matrix 2");
+//    printMatrix(matrix2);
+//    puts("Result");
+//    printMatrix(result);
 
-
-    int endTime = gettimeofday(&t2, NULL);
+    gettimeofday(&t2, NULL);
     unsigned long long elapsed = 1000 * (t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec) / 1000;
     printf("Time elapsed in seconds: %llu", elapsed / 1000);
 
